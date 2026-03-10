@@ -73,15 +73,25 @@ def val_epoch(model, optimizer, criterion, loader, device, pad_ind):
     
     return epoch_loss / len(loader.dataset)
 
-def train(model, optimizer, train_loader, val_loader, num_epochs, device, pad_ind):
+def train(model, optimizer, train_loader, val_loader, num_epochs, device, pad_ind, save_path = './best_model.pt'):
     criterion = nn.CrossEntropyLoss(ignore_index=pad_ind)
     train_losses = []
     val_losses = []
+    best_loss = float('inf')
 
     for epochs in tqdm(range(1, num_epochs + 1), desc='Epoch'):
         train_loss = train_epoch(model, optimizer, criterion, train_loader, device, pad_ind)
         train_losses.append(train_loss)
         val_loss = val_epoch(model, optimizer, criterion, train_loader, device, pad_ind)
         val_losses.append(val_loss)
+
+        if val_loss < best_loss:
+            best_loss = val_loss
+            torch.save({
+                'epoch': epochs,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'val_loss': val_loss,
+            }, save_path)
 
         plot_losses(train_losses, val_losses)

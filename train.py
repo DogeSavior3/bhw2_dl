@@ -5,6 +5,8 @@ from torch import nn
 from torch.utils.data import DataLoader
 from IPython.display import clear_output
 from tqdm.notebook import tqdm
+from dataset import Vocabulary
+from model import Transformer
 
 def plot_losses(train_losses, val_losses):
     plt.figure(figsize=(10,6))
@@ -82,10 +84,10 @@ def train(model, optimizer, train_loader, val_loader, num_epochs, device, pad_in
     for epochs in tqdm(range(1, num_epochs + 1), desc='Epoch'):
         train_loss = train_epoch(model, optimizer, criterion, train_loader, device, pad_ind)
         train_losses.append(train_loss)
-        val_loss = val_epoch(model, optimizer, criterion, train_loader, device, pad_ind)
+        val_loss = val_epoch(model, optimizer, criterion, val_loader, device, pad_ind)
         val_losses.append(val_loss)
 
-        if val_loss < best_loss:
+        if epochs >= 5 and val_loss < best_loss:
             best_loss = val_loss
             torch.save({
                 'epoch': epochs,
@@ -95,3 +97,20 @@ def train(model, optimizer, train_loader, val_loader, num_epochs, device, pad_in
             }, save_path)
 
         plot_losses(train_losses, val_losses)
+
+@torch.no_grad()
+def translate(model : Transformer, source_sentence, source_vocab, target_vocab : Vocabulary, device, max_len = 82):
+    model.eval()
+    source_tokens = source_vocab.encode(source_sentence)
+    source_tensor = torch.tensor(source_tokens).unsqueeze(0).to(device)
+    translation = [target_vocab.bos_ind]
+
+    for _ in range(max_len):
+        target_tensor = torch.tensor(translation).unsqueeze(0).to(device)
+        logits = model(source_tensor, target_tensor, None, None)
+        next_token = logits[0, -1, :].argmax().item()
+        translation.append(next_token)
+        if next_token == target_vocab.eos_ind:
+            break
+
+    return target_vocab.decode(translation[1: -1] if translation[-1] == target_vocab.eos_ind else translation[1:])

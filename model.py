@@ -67,4 +67,5 @@ class Transformer(nn.Module):
         out = self.transformer(source_emb, target_emb, tgt_mask=target_mask, src_key_padding_mask=source_pad_mask, tgt_key_padding_mask=target_pad_mask)
 
         return self.fc_out(out)
+
     

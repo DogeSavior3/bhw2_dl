@@ -37,7 +37,7 @@ def train_epoch(model, optimizer, criterion, loader, device, pad_ind, scaler):
         target_pad_mask = (target_input == pad_ind).to(device)
         optimizer.zero_grad()
 
-        with autocast(device_type=device, dtype=torch.bfloat16):
+        with autocast(device=device, dtype=torch.bfloat16):
             logits = model(source, target_input, source_pad_mask, target_pad_mask)
             logits_flat = logits.reshape(-1, logits.size(-1))
             target_flat = target_output.reshape(-1)
@@ -68,7 +68,7 @@ def val_epoch(model, optimizer, criterion, loader, device, pad_ind):
         target_output = target[:, 1:]
         source_pad_mask = (source == pad_ind).to(device)
         target_pad_mask = (target_input == pad_ind).to(device)
-        with autocast(device_type=device, dtype=torch.bfloat16):
+        with autocast(device=device, dtype=torch.bfloat16):
             logits = model(source, target_input, source_pad_mask, target_pad_mask)
 
             logits_flat = logits.reshape(-1, logits.size(-1))

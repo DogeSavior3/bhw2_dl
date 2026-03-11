@@ -32,8 +32,8 @@ def train_epoch(model, optimizer, criterion, loader, device, pad_ind):
         target_input = target[:, :-1]
         target_output = target[:, 1:]
 
-        source_pad_mask = source == pad_ind
-        target_pad_mask = target_input == pad_ind
+        source_pad_mask = (source == pad_ind).to(device)
+        target_pad_mask = (target_input == pad_ind).to(device)
         optimizer.zero_grad()
         logits = model(source, target_input, source_pad_mask, target_pad_mask)
 
@@ -62,8 +62,8 @@ def val_epoch(model, optimizer, criterion, loader, device, pad_ind):
 
         target_input = target[:, :-1]
         target_output = target[:, 1:]
-        source_pad_mask = source == pad_ind
-        target_pad_mask = target_input == pad_ind
+        source_pad_mask = (source == pad_ind).to(device)
+        target_pad_mask = (target_input == pad_ind).to(device)
 
         logits = model(source, target_input, source_pad_mask, target_pad_mask)
 
@@ -76,7 +76,7 @@ def val_epoch(model, optimizer, criterion, loader, device, pad_ind):
     return epoch_loss / len(loader.dataset)
 
 def train(model, optimizer, train_loader, val_loader, num_epochs, device, pad_ind, save_path = './best_model.pt'):
-    criterion = nn.CrossEntropyLoss(ignore_index=pad_ind)
+    criterion = nn.CrossEntropyLoss(ignore_index=pad_ind).to(device)
     train_losses = []
     val_losses = []
     best_loss = float('inf')

@@ -100,8 +100,8 @@ def padding_func(batch, pad_ind, device):
         targets.append(torch.tensor(target, device=device))
 
 
-    source_padded = pad_sequence(sources, padding_value=pad_ind, batch_first=True)
-    target_padded = pad_sequence(targets, padding_value=pad_ind, batch_first=True)
+    source_padded = pad_sequence(sources, padding_value=pad_ind, batch_first=True).to(device)
+    target_padded = pad_sequence(targets, padding_value=pad_ind, batch_first=True).to(device)
     source_lengths = torch.tensor(source_length, device=device)
     target_lengths = torch.tensor(target_length, device=device)
 

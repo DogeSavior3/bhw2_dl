@@ -4,6 +4,7 @@ from typing import Union, List, Tuple
 from sentencepiece import SentencePieceTrainer, SentencePieceProcessor
 from torch.utils.data import Dataset
 from torch.nn.utils.rnn import pad_sequence
+device = "cuda:0" if torch.cuda.is_available() else "cpu"
 
 class Vocabulary:
     def __init__(self):
@@ -40,7 +41,7 @@ class Vocabulary:
                 self.word2ind[word] = ind
                 ind += 1
 
-        self.ind2word = {ind : word for word, ind in self.word_cnt.items()}
+        self.ind2word = {ind : word for word, ind in self.word2ind.items()}
 
     def encode(self, sentence):
         tokens = sentence.split()
@@ -80,7 +81,7 @@ class TranslationDataset(Dataset):
         source_indices = self.source_vocab.encode(source_sentence)
         target_indices = self.target_vocab.encode(target_sentence)
 
-        return torch.tensor(source_indices, dtype = torch.long), torch.tensor(target_indices, dtype = torch.long)
+        return torch.tensor(source_indices, dtype = torch.long, device=device), torch.tensor(target_indices, dtype = torch.long, device=device)
     
 def padding_func(batch, pad_ind, device):
     source_batch, target_batch = zip(*batch)

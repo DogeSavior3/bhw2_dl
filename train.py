@@ -105,10 +105,18 @@ def translate(model : Transformer, source_sentence, source_vocab, target_vocab :
     source_tensor = torch.tensor(source_tokens).unsqueeze(0).to(device)
     translation = [target_vocab.bos_ind]
 
+    forbidden_tokens = [
+        target_vocab.unk_ind,
+        target_vocab.pad_ind,
+        target_vocab.bos_ind,
+    ]
+
     for _ in range(max_len):
         target_tensor = torch.tensor(translation).unsqueeze(0).to(device)
         logits = model(source_tensor, target_tensor, None, None)
-        next_token = logits[0, -1, :].argmax().item()
+        next_logits = logits[0, -1, :].clone()
+        next_logits[forbidden_tokens] = -float('inf')
+        next_token = next_logits.argmax().item()
         translation.append(next_token)
         if next_token == target_vocab.eos_ind:
             break

@@ -1,4 +1,6 @@
+import os
 import torch
+import subprocess
 import matplotlib.pyplot as plt
 from typing import List, Optional, Any
 from torch import nn
@@ -9,15 +11,59 @@ from dataset import Vocabulary
 from model import Transformer
 from torch.cuda.amp import autocast, GradScaler
 
-def plot_losses(train_losses, val_losses):
-    plt.figure(figsize=(10,6))
-    plt.plot(range(1, len(train_losses) + 1), train_losses, label = 'train')
-    plt.plot(range(1, len(val_losses) + 1), val_losses, label = 'val')
-    plt.xlabel('epoch')
-    plt.ylabel('loss')
-    plt.grid(True)
+def compute_val_bleu(model, source_vocab, target_vocab, device, val_de_path='data/val.de-en.de', val_en_path='data/val.de-en.en'):
+    model.eval()
+    temp_pred_path = 'temp_val.en'
+    with open(val_de_path, 'r', encoding='utf-8') as f:
+        val_sentences = [line.strip() for line in f]
+    
+    translations = []
+    for sent in tqdm(val_sentences, desc='Translating val', leave=False):
+        en_translation = translate(
+            model,
+            sent,
+            source_vocab,
+            target_vocab,
+            device
+        )
+        translations.append(en_translation)
+
+    with open(temp_pred_path, 'w', encoding='utf-8') as f:
+        for translation in translations:
+            f.write(translation + '\n')
+
+    with open(temp_pred_path, 'r', encoding='utf-8') as pred_file:
+        result = subprocess.run(
+            ['sacrebleu', val_en_path, '--tokenize', 'none', '--width', '2', '-b'],
+            stdin=pred_file,
+            capture_output=True,
+            text=True,
+            check=True
+        )
+
+    bleu = float(result.stdout.strip())
+    os.remove(temp_pred_path)
+    return bleu
+
+
+def plot_losses(train_losses, val_losses, val_bleus):
+    fig, axes = plt.subplots(1, 2, figsize=(14, 5))
+    epochs = range(1, len(train_losses) + 1)
+
+    axes[0].plot(epochs, train_losses, label='train')
+    axes[0].plot(epochs, val_losses, label='val')
+    axes[0].set_xlabel('epoch')
+    axes[0].set_ylabel('loss')
+    axes[0].grid(True)
+    axes[0].legend()
+
+    axes[1].plot(range(1, len(val_bleus) + 1), val_bleus, label='val BLEU')
+    axes[1].set_xlabel('epoch')
+    axes[1].set_ylabel('BLEU')
+    axes[1].grid(True)
+    axes[1].legend()
+
     plt.tight_layout()
-    plt.legend()
     plt.show()
 
 def train_epoch(model, optimizer, criterion, loader, device, pad_ind, scaler):
@@ -79,11 +125,12 @@ def val_epoch(model, optimizer, criterion, loader, device, pad_ind):
     
     return epoch_loss / len(loader.dataset)
 
-def train(model, optimizer, train_loader, val_loader, num_epochs, device, pad_ind, save_path = './best_model.pt'):
+def train(model, optimizer, train_loader, val_loader, num_epochs, device, pad_ind, source_vocab, target_vocab, save_path = './best_model.pt'):
     criterion = nn.CrossEntropyLoss(ignore_index=pad_ind, label_smoothing=0.1).to(device)
     train_losses = []
     val_losses = []
-    best_loss = float('inf')
+    val_bleus = []
+    best_bleu = float('inf')
     scaler = GradScaler()
 
     for epochs in tqdm(range(1, num_epochs + 1), desc='Epoch'):
@@ -91,17 +138,19 @@ def train(model, optimizer, train_loader, val_loader, num_epochs, device, pad_in
         train_losses.append(train_loss)
         val_loss = val_epoch(model, optimizer, criterion, val_loader, device, pad_ind)
         val_losses.append(val_loss)
+        val_bleu = compute_val_bleu(model, source_vocab, target_vocab, device)
+        val_bleus.append(val_bleu)
 
-        if epochs >= 5 and val_loss < best_loss:
-            best_loss = val_loss
+        if val_bleu < best_bleu:
+            best_bleu = val_bleu
             torch.save({
                 'epoch': epochs,
                 'model_state_dict': model.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
-                'val_loss': val_loss,
+                'val_bleu': val_bleu,
             }, save_path)
 
-        plot_losses(train_losses, val_losses)
+        plot_losses(train_losses, val_losses, val_bleus)
 
 @torch.no_grad()
 def translate(model : Transformer, source_sentence, source_vocab, target_vocab : Vocabulary, device, max_len = 82, repetition_penalty = 1.2):

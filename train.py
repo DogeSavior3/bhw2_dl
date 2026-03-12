@@ -80,7 +80,7 @@ def val_epoch(model, optimizer, criterion, loader, device, pad_ind):
     return epoch_loss / len(loader.dataset)
 
 def train(model, optimizer, train_loader, val_loader, num_epochs, device, pad_ind, save_path = './best_model.pt'):
-    criterion = nn.CrossEntropyLoss(ignore_index=pad_ind).to(device)
+    criterion = nn.CrossEntropyLoss(ignore_index=pad_ind, label_smoothing=0.1).to(device)
     train_losses = []
     val_losses = []
     best_loss = float('inf')

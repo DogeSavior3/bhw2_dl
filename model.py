@@ -64,7 +64,7 @@ class Transformer(nn.Module):
 
         target_mask = torch.triu(torch.ones(target.size(1), target.size(1)) * float('-inf'), diagonal=1).to(device)
 
-        out = self.transformer(source_emb, target_emb, tgt_mask=target_mask, src_key_padding_mask=source_pad_mask, tgt_key_padding_mask=target_pad_mask)
+        out = self.transformer(source_emb, target_emb, tgt_mask=target_mask, src_key_padding_mask=source_pad_mask, tgt_key_padding_mask=target_pad_mask, memory_key_padding_mask=source_pad_mask)
 
         return self.fc_out(out)
 

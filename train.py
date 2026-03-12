@@ -104,7 +104,7 @@ def train(model, optimizer, train_loader, val_loader, num_epochs, device, pad_in
         plot_losses(train_losses, val_losses)
 
 @torch.no_grad()
-def translate(model : Transformer, source_sentence, source_vocab, target_vocab : Vocabulary, device, max_len = 82):
+def translate(model : Transformer, source_sentence, source_vocab, target_vocab : Vocabulary, device, max_len = 82, repetition_penalty = 1.2):
     model.eval()
     source_tokens = source_vocab.encode(source_sentence)
     source_tensor = torch.tensor(source_tokens).unsqueeze(0).to(device)
@@ -121,6 +121,14 @@ def translate(model : Transformer, source_sentence, source_vocab, target_vocab :
         logits = model(source_tensor, target_tensor, None, None)
         next_logits = logits[0, -1, :].clone()
         next_logits[forbidden_tokens] = -float('inf')
+
+        if repetition_penalty != 1.0 and len(translation) > 1:
+            prev_token = translation[-1] # только последний токен
+            if next_logits[prev_token] > 0:
+                next_logits[prev_token] /= repetition_penalty
+            else:
+                next_logits[prev_token] *= repetition_penalty
+
         next_token = next_logits.argmax().item()
         translation.append(next_token)
         if next_token == target_vocab.eos_ind:

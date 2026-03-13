@@ -188,12 +188,14 @@ def translate(model: Transformer, source_sentence, source_vocab, target_vocab: V
             if translation[-1] == target_vocab.eos_ind:
                 all_candidates.append((translation, score))
                 continue
-
+            
             target_tensor = torch.tensor(translation).unsqueeze(0).to(device)
 
             logits = model(source_tensor, target_tensor, None, None)
             next_logits = logits[0, -1, :].clone()
             next_logits[forbidden_tokens] = -float('inf')
+            if len(translation) >= 2 and translation[-1] == translation[-2]:
+                next_logits[translation[-1]] = -float('inf')
 
             log_probs = torch.log_softmax(next_logits, dim=-1)
             topk_log_probs, topk_indices = torch.topk(log_probs, beam_size)

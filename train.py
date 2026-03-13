@@ -191,7 +191,7 @@ def translate(model : Transformer, source_sentence, source_vocab, target_vocab :
 
         all_candidates.sort(key=sort_func, reverse=True)
         beams = all_candidates[:beam_size]
-        if torch.all(translation[-1] == target_vocab.eos_ind for translation, _ in beams):
+        if all(translation[-1] == target_vocab.eos_ind for translation, _ in beams):
             break
 
     best_translation, _ = max(beams, key=sort_func)

@@ -13,28 +13,37 @@ from torch.cuda.amp import autocast, GradScaler
 
 def compute_val_bleu(model, source_vocab, target_vocab, device, val_de_path='data/val.de-en.de', val_en_path='data/val.de-en.en'):
     model.eval()
-    temp_pred_path = 'temp_val.en'
+    temp_pred_path1 = 'temp_val1.en'
+    temp_pred_path2 = 'temp_val2.en'
     with open(val_de_path, 'r', encoding='utf-8') as f:
         val_sentences = [line.strip() for line in f]
     
     translations = []
-    for sent in tqdm(val_sentences, desc='Translating val', leave=False):
+    for sent in tqdm(val_sentences[::2], desc='Translating val', leave=False):
         en_translation = translate(
             model,
             sent,
             source_vocab,
             target_vocab,
-            device
+            device, 
+            beam_size = 3
         )
         translations.append(en_translation)
 
-    with open(temp_pred_path, 'w', encoding='utf-8') as f:
+    with open(temp_pred_path1, 'w', encoding='utf-8') as f:
         for translation in translations:
             f.write(translation + '\n')
 
-    with open(temp_pred_path, 'r', encoding='utf-8') as pred_file:
+    with open(val_en_path, 'r', encoding='utf-8') as f:
+        val_en_sentences = [line.strip() for line in f]
+
+    with open(temp_pred_path2, 'w', encoding='utf-8') as f:
+        for sent in val_en_sentences[::2]:
+            f.write(sent + '\n')
+
+    with open(temp_pred_path1, 'r', encoding='utf-8') as pred_file:
         result = subprocess.run(
-            ['sacrebleu', val_en_path, '--tokenize', 'none', '--width', '2', '-b'],
+            ['sacrebleu', temp_pred_path2, '--tokenize', 'none', '--width', '2', '-b'],
             stdin=pred_file,
             capture_output=True,
             text=True,
@@ -42,7 +51,8 @@ def compute_val_bleu(model, source_vocab, target_vocab, device, val_de_path='dat
         )
 
     bleu = float(result.stdout.strip())
-    os.remove(temp_pred_path)
+    os.remove(temp_pred_path1)
+    os.remove(temp_pred_path2)
     return bleu
 
 

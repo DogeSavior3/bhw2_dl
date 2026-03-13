@@ -66,12 +66,12 @@ def plot_losses(train_losses, val_losses, val_bleus):
     axes[0].set_ylabel('loss')
     axes[0].grid(True)
     axes[0].legend()
-
-    axes[1].plot(range(1, len(val_bleus) + 1), val_bleus, label='val BLEU')
-    axes[1].set_xlabel('epoch')
-    axes[1].set_ylabel('BLEU')
-    axes[1].grid(True)
-    axes[1].legend()
+    if len(val_bleus):
+        axes[1].plot(range(1, len(val_bleus) + 1), val_bleus, label='val BLEU')
+        axes[1].set_xlabel('epoch')
+        axes[1].set_ylabel('BLEU')
+        axes[1].grid(True)
+        axes[1].legend()
 
     plt.tight_layout()
     plt.show()
@@ -148,17 +148,18 @@ def train(model, optimizer, train_loader, val_loader, num_epochs, device, pad_in
         train_losses.append(train_loss)
         val_loss = val_epoch(model, optimizer, criterion, val_loader, device, pad_ind)
         val_losses.append(val_loss)
-        val_bleu = compute_val_bleu(model, source_vocab, target_vocab, device)
-        val_bleus.append(val_bleu)
+        if epochs > 8:
+            val_bleu = compute_val_bleu(model, source_vocab, target_vocab, device)
+            val_bleus.append(val_bleu)
 
-        if val_bleu > best_bleu:
-            best_bleu = val_bleu
-            torch.save({
-                'epoch': epochs,
-                'model_state_dict': model.state_dict(),
-                'optimizer_state_dict': optimizer.state_dict(),
-                'val_bleu': val_bleu,
-            }, save_path)
+            if val_bleu > best_bleu:
+                best_bleu = val_bleu
+                torch.save({
+                    'epoch': epochs,
+                    'model_state_dict': model.state_dict(),
+                    'optimizer_state_dict': optimizer.state_dict(),
+                    'val_bleu': val_bleu,
+                }, save_path)
 
         plot_losses(train_losses, val_losses, val_bleus)
 

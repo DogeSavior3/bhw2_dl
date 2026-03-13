@@ -19,7 +19,7 @@ def compute_val_bleu(model, source_vocab, target_vocab, device, val_de_path='dat
         val_sentences = [line.strip() for line in f]
     
     translations = []
-    for sent in tqdm(val_sentences[::2], desc='Translating val', leave=False):
+    for sent in tqdm(val_sentences[::3], desc='Translating val', leave=False):
         en_translation = translate(
             model,
             sent,
@@ -38,7 +38,7 @@ def compute_val_bleu(model, source_vocab, target_vocab, device, val_de_path='dat
         val_en_sentences = [line.strip() for line in f]
 
     with open(temp_pred_path2, 'w', encoding='utf-8') as f:
-        for sent in val_en_sentences[::2]:
+        for sent in val_en_sentences[::3]:
             f.write(sent + '\n')
 
     with open(temp_pred_path1, 'r', encoding='utf-8') as pred_file:

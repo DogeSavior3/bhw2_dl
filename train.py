@@ -148,7 +148,7 @@ def train(model, optimizer, train_loader, val_loader, num_epochs, device, pad_in
         train_losses.append(train_loss)
         val_loss = val_epoch(model, optimizer, criterion, val_loader, device, pad_ind)
         val_losses.append(val_loss)
-        if epochs > 5:
+        if epochs > 0:
             val_bleu = compute_val_bleu(model, source_vocab, target_vocab, device)
             val_bleus.append(val_bleu)
 

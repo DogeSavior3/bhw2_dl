@@ -26,7 +26,7 @@ def compute_val_bleu(model, source_vocab, target_vocab, device, val_de_path='dat
             source_vocab,
             target_vocab,
             device, 
-            beam_size = 3
+            beam_size = 1
         )
         translations.append(en_translation)
 

@@ -76,7 +76,7 @@ def plot_losses(train_losses, val_losses, val_bleus):
     plt.tight_layout()
     plt.show()
 
-def train_epoch(model, optimizer, criterion, loader, device, pad_ind, scaler):
+def train_epoch(model, optimizer, scheduler, criterion, loader, device, pad_ind, scaler):
     model.train()
     epoch_loss = 0.0
 
@@ -102,9 +102,10 @@ def train_epoch(model, optimizer, criterion, loader, device, pad_ind, scaler):
         scaler.scale(loss).backward()
         scaler.unscale_(optimizer)
         nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
-        # optimizer.step()
         scaler.step(optimizer)
         scaler.update()
+        scheduler.step()
+
         epoch_loss += loss.item() * source.size(0)
 
     return epoch_loss / len(loader.dataset)
@@ -135,7 +136,7 @@ def val_epoch(model, optimizer, criterion, loader, device, pad_ind):
     
     return epoch_loss / len(loader.dataset)
 
-def train(model, optimizer, train_loader, val_loader, num_epochs, device, pad_ind, source_vocab, target_vocab, save_path = './best_model.pt'):
+def train(model, optimizer, scheduler, train_loader, val_loader, num_epochs, device, pad_ind, source_vocab, target_vocab, save_path = './best_model.pt'):
     criterion = nn.CrossEntropyLoss(ignore_index=pad_ind, label_smoothing=0.1).to(device)
     train_losses = []
     val_losses = []
@@ -144,7 +145,7 @@ def train(model, optimizer, train_loader, val_loader, num_epochs, device, pad_in
     scaler = GradScaler()
 
     for epochs in tqdm(range(1, num_epochs + 1), desc='Epoch'):
-        train_loss = train_epoch(model, optimizer, criterion, train_loader, device, pad_ind, scaler)
+        train_loss = train_epoch(model, optimizer, scheduler, criterion, train_loader, device, pad_ind, scaler)
         train_losses.append(train_loss)
         val_loss = val_epoch(model, optimizer, criterion, val_loader, device, pad_ind)
         val_losses.append(val_loss)
